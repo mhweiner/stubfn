@@ -1,6 +1,7 @@
 {
   "name": "stubfn",
   "version": "0.0.0-autorel",
+  "license": "MIT",
   "description": "A minimal, zero-dependency stub utility for JavaScript testing. Simple API, predictable behavior, and no magic—perfect for replacing Sinon in modern test setups.",
   "main": "./dist/index.js",
   "types": "dist/index.d.ts",

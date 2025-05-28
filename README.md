@@ -12,34 +12,17 @@ A minimal, zero-dependency stub utility for JavaScript testing. With a simple ye
 ```typescript
 import {stub} from 'stubfn';
 
-// Stub that always returns 'hello'
-const myStub = stub().returns('hello');
+const apiStub = stub()
+  .returns('success') // default return value
+  .when(['POST', '/users'], {id: 1, name: 'John'})
+  .when(['DELETE', '/users'], new Error('not allowed'));
 
-console.log(myStub()); // 'hello'
+console.log(apiStub('GET', '/users')); // 'success' (default return value)
+console.log(apiStub('POST', '/users')); // {id: 1, name: 'John'}
+console.log(apiStub('DELETE', '/users')); // Throws: Error: not allowed
 
-// Named stub with argument checking
-const myStub = stub('login')
-  .expects('user123', 'password')
-  .returns(true);
-
-console.log(myStub('user123', 'password')); // true
-myStub('wrong'); // Throws: Stub "login" called with unexpected arguments
-
-// Conditional return values with a default
-const myStub = stub()
-  .returns('world') // default return value
-  .when([1, 2], 'ok')
-  .when([3, 4], 'not ok');
-
-myStub(1, 2); // 'ok'
-
-// Conditional return values, otherwise throws
-const myStub = stub()
-  .throws(new Error('how rude')) // default
-  .when(['please'], "here you go")
-  .when(['thank you'], "you're welcome");
-
-myStub(1, 2); // 'ok'
+console.log(apiStub.getCalls()); // [['GET', '/users'], ['POST', '/users'], ['DELETE', '/users']]
+console.log(apiStub.getNumCalls()); // 3
 ```
 
 ## Installation
@@ -60,23 +43,30 @@ See [stub.ts](src/stub.ts) for the full type definition.
 
 ## Stub Methods
 
+### Resetting
+
+#### `Stub.reset(): Stub`  
+Resets the stub to its initial state. Clears recorded calls and resets internal expectations and return values.
+
+#### `Stub.clearCalls(): Stub`  
+Clears recorded calls. Does not reset internal expectations and return values.
+
+---
+
 ### Call Tracking
 
 #### `Stub.getCalls(): any[]`  
-Returns an array of all calls made to the stub (each call is an array of arguments)
+Returns an array of all calls made to the stub (each call is an array of arguments).
 
 #### `Stub.getNumCalls(): number`  
-Returns the total number of times the stub has been called
-
-#### `Stub.clear(): Stub`  
-Clears recorded calls and resets internal expectations and return values
+Returns the total number of times the stub has been called.
 
 ---
 
 ### Argument Validation
 
 #### `Stub.expects(...args: any[]): Stub`  
-Defines the exact arguments the stub expects to receive. If the stub is called with different arguments, it throws an error. Uses deep equality comparison (by value, not reference).
+Defines the exact arguments the stub expects to receive. If the stub is called with different arguments, it throws an error. Uses deep equality comparison (by value, not reference). Cannot be used after `when()`.
 
 ---
 
@@ -85,26 +75,27 @@ Defines the exact arguments the stub expects to receive. If the stub is called w
 #### `Stub.returns(value: any): Stub`  
 Sets the value that the stub should return when called. If the value is a function, it will be called with the stub's arguments. If no return value is set, the stub will return `undefined`.
 
+ If `when()` is used and the stub is called with arguments that match the `when()` arguments, the `when()` return value will be returned instead of the `returns()` value.
+
 #### `Stub.throws(error: Error): Stub`  
-Configures the stub to throw the specified error when called.
+An alias for `returns(new Error(error))`.
 
 #### `Stub.when(args: any[], returns: any): Stub`  
-Sets up a return value for a specific set of arguments. Cannot be used after `expects()`. Can be chained multiple times. Example:
-
-```ts
-const myStub = stub()
-  .returns('world') // default return value
-  .when([1, 2], 'ok')
-  .when([3, 4], 'not ok');
-
-myStub(1, 2); // 'ok'
-myStub(3, 4); // 'not ok'
-myStub('hello'); // 'world'
-```
+Sets up a return value for a specific set of arguments. Cannot be used after `expects()`. Can be chained multiple times.
 
 ## Examples
 
-### Basic usage with argument checking:
+### The most basic of examples:
+
+```ts
+const myStub = stub();
+
+myStub('hello'); // undefined
+console.log(myStub.getCalls()); // [['hello']]
+console.log(myStub.getNumCalls()); // 1
+```
+
+### Argument checking and return value:
 ```ts
 const myStub = stub()
   .expects('hello', 123)
@@ -114,73 +105,69 @@ console.log(myStub('hello', 123)); // 'world'
 console.log(myStub.getCalls());    // [['hello', 123]]
 console.log(myStub.getNumCalls()); // 1
 
-myStub('oops'); // Throws: Stub called with unexpected arguments.
-                // Expected: ['hello', 123]
-                // Received: ['oops']
+myStub('potato'); // Throws: Stub called with unexpected arguments.
+                  // Expected: ['hello', 123]
+                  // Received: ['potato']
 ```
 
-### Named stub for better debugging:
+### Conditional return values, otherwise throws an error:
 ```ts
-const myStub = stub("my-stub")
-  .expects('hello', 123)
-  .returns('world');
+const serverStub = stub()
+  .throws(new Error('how rude')) // default
+  .when(['please'], "here you go")
+  .when(['thank you'], "you're welcome");
 
-myStub('oops'); // Throws: Stub "my-stub" called with unexpected arguments.
-                // Expected: ['hello', 123]
-                // Received: ['oops']
+serverStub('please'); // 'here you go'
+serverStub('thank you'); // 'you're welcome'
+serverStub('gimme some grub'); // Throws: Error: how rude
 ```
 
-### Using `when()` for conditional returns:
-```ts
-const myStub = stub()
-  .throws(new Error('unexpected'))
-  .when([1, 2], 'ok')
-  .when([3, 4], 'not ok')
-  .when(['foo'], 'bar');
+### Mocking a service with a unit test library
 
-console.log(myStub(1, 2));        // 'ok'
-console.log(myStub(3, 4));        // 'not ok'
-console.log(myStub('foo'));       // 'bar'
-console.log(myStub('other'));     // Throws: Error: unexpected
+Here's the domain code that we'll be testing. It's a simple function that checks if a user has completed their profile.
+
+```ts
+// hasCompletedProfile.ts
+import {getUser} from './services/getUser';
+
+export async function hasCompletedProfile(userId: string) {
+  const user = await getUser(userId);
+  return user.name && user.email && user.phone;
+}
 ```
 
-### Returning functions:
 ```ts
-const myStub = stub().returns((x: number) => x * 2);
-console.log(myStub(5)()); // 10
-```
+// hasCompletedProfile.spec.ts
+import {test} from 'hoare';
+import {mock, stub} from 'cjs-mock'; // for CJS modules only
+                                     // cjs-mock includes stubfn 
+import * as m from './hasCompletedProfile'; // get module type
 
-### Throwing errors:
-```ts
-const myStub = stub().throws(new Error('boom'));
-myStub(); // Throws: Error: boom
-```
+const getUserStub = stub()
+    .when(['user123'], {
+      name: 'John', 
+      email: 'john@example.com', 
+      phone: '123-456-7890'
+    })
+    .when(['user456'], {
+      name: 'Jane', 
+      email: 'jane@example.com',
+      phone: undefined // missing phone
+    });
 
-Clearing and resetting:
-```ts
-const myStub = stub()
-  .expects('hello')
-  .returns('world');
+  // Mock the domain code (System Under Test) to use our stub
+  const sut: typeof m = mock('./hasCompletedProfile', {
+    './services/getUser': {getUser: getUserStub}
+  });
 
-myStub('hello'); // 'world'
-myStub.clear();  // Resets everything
+test('hasCompletedProfile returns true if all fields are filled', async (assert) => {
+  // Test with different users
+  assert.isTrue(await sut.hasCompletedProfile('user123'));
+  assert.isFalse(await sut.hasCompletedProfile('user456'));
 
-// Now we can use it differently
-myStub.returns('new value');
-console.log(myStub('anything')); // 'new value'
-```
-
-## Common Use Cases
-
-### Testing API Calls
-```ts
-const apiStub = stub()
-  .when(['GET', '/users'], [{id: 1, name: 'John'}])
-  .when(['POST', '/users'], {id: 2, name: 'Jane'});
-
-// In your test
-const users = await apiStub('GET', '/users');
-assert.deepEqual(users, [{id: 1, name: 'John'}]);
+  // Verify the stub was called with correct arguments
+  assert.equal(getUserStub.getCalls(), [['user123'], ['user456']]);
+});
 ```
 
 ### Testing Error Handling
@@ -208,6 +195,8 @@ assert.equal(result, 'HELLO');
 
 If you find yourself needing more powerful features, or re-implementing dependencies, it might be a sign that your tests are too complex. Consider breaking your code into smaller, more testable units instead of adding complexity to your test setup.
 
+However, if you want to add a feature, you can submit an issue or a PR. Contributions are welcome!
+
 ## Support, feedback, and contributions
 
 - Star this repo if you like it!
@@ -217,14 +206,10 @@ If you find yourself needing more powerful features, or re-implementing dependen
 
 Want to sponsor this project? [Reach out](mailto:mhweiner234@gmail.com?subject=I%20want%20to%20sponsor%20stubfn).
 
-## Other useful libraries
+## Related libraries
 
 - [cjs-mock](https://github.com/mhweiner/cjs-mock): NodeJS module mocking for CJS (CommonJS) modules for unit testing purposes. Similar to [proxyquire](https://www.npmjs.com/package/proxyquire), but simpler and safer.
-- [autorel](https://github.com/mhweiner/autorel): Automate semantic releases based on conventional commits. Similar to semantic-release but much simpler.
 - [hoare](https://github.com/mhweiner/hoare): An easy-to-use, fast, and defensive JS/TS test runner designed to help you to write simple, readable, and maintainable tests.
-- [jsout](https://github.com/mhweiner/jsout): A Syslog-compatible, small, and simple logger for Typescript/Javascript projects.
-- [brek](https://github.com/mhweiner/brek): A small, yet powerful typed and structured config library with lambda support for things like AWS Secrets Manager.
-- [typura](https://github.com/aeroview/typura): Simple and extensible runtime input validation for TS/JS, written in TS, fried in batter.
 
 ## License
 
