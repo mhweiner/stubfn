@@ -53,44 +53,36 @@ See [stub.ts](src/stub.ts) for the full type definition.
 
 ## Stub Methods
 
-### Resetting
-
-#### `Stub.reset(): Stub`  
+### `Stub.reset(): Stub`  
 Resets the stub to its initial state. Clears recorded calls and resets internal expectations and return values.
 
-#### `Stub.clearCalls(): Stub`  
+### `Stub.clearCalls(): Stub`  
 Clears recorded calls. Does not reset internal expectations and return values.
 
 ---
 
-### Call Tracking
-
-#### `Stub.getCalls(): any[]`  
+### `Stub.getCalls(): any[]`  
 Returns an array of all calls made to the stub (each call is an array of arguments).
 
-#### `Stub.getNumCalls(): number`  
+### `Stub.getNumCalls(): number`  
 Returns the total number of times the stub has been called.
 
 ---
 
-### Argument Validation
-
-#### `Stub.expects(...args: any[]): Stub`  
+### `Stub.expects(...args: any[]): Stub`  
 Defines the exact arguments the stub expects to receive. If the stub is called with different arguments, it throws an error. Uses deep equality comparison (by value, not reference). Cannot be used after `when()`.
 
 ---
 
-### Return Value Configuration
-
-#### `Stub.returns(value: any): Stub`  
+### `Stub.returns(value: any): Stub`  
 Sets the value that the stub should return when called. If the value is a function, it will be called with the stub's arguments. If no return value is set, the stub will return `undefined`.
 
  If `when()` is used and the stub is called with arguments that match the `when()` arguments, the `when()` return value will be returned instead of the `returns()` value.
 
-#### `Stub.throws(error: Error): Stub`  
+### `Stub.throws(error: Error): Stub`  
 An alias for `returns(new Error(error))`.
 
-#### `Stub.when(args: any[], returns: any): Stub`  
+### `Stub.when(args: any[], returns: any): Stub`  
 Sets up a return value for a specific set of arguments. Cannot be used after `expects()`. Can be chained multiple times.
 
 ## Examples
