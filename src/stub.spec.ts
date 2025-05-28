@@ -99,11 +99,27 @@ test('unexpected arg error contains name if supplied in constructor', (assert) =
 
 });
 
-test('stub throws error if .throws is set', (assert) => {
+test('stub throws error if .throws() is called with an Error', (assert) => {
 
     const fn = stub('my-awesome-stub').throws(new Error('boom'));
 
     assert.throws(() => fn(), /boom/);
+
+});
+
+test('stub throws error if .returns is called with an Error', (assert) => {
+
+    const fn = stub('my-awesome-stub').returns(new Error('boom'));
+
+    assert.throws(() => fn(), /boom/);
+
+});
+
+test('if return value is a function, it is called with the arguments', (assert) => {
+
+    const fn = stub('my-awesome-stub').returns((a: number, b: number) => a + b);
+
+    assert.equal(fn(1, 2), 3);
 
 });
 

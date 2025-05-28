@@ -12,7 +12,7 @@ export type Stub = ((...args: any[]) => any) & {
     getNumCalls: () => number
     expects: (...expected: any[]) => Stub
     returns: (value: any) => Stub
-    throws: (error: Error) => Stub
+    throws: (error: any) => Stub
     when: (args: any[], returns: any) => Stub
     clearCalls: () => Stub
     reset: () => Stub
@@ -36,6 +36,12 @@ export function stub(name?: string): Stub {
         if (returnValue instanceof Function) {
 
             return returnValue(...args);
+
+        }
+
+        if (returnValue instanceof Error) {
+
+            throw returnValue;
 
         }
 
@@ -82,17 +88,7 @@ export function stub(name?: string): Stub {
         return fn;
 
     };
-    fn.throws = (error: Error): Stub => {
-
-        returnValue = () => {
-
-            throw error;
-
-        };
-
-        return fn;
-
-    };
+    fn.throws = fn.returns;
     fn.when = (args: any[], returns: any): Stub => {
 
         if (expectedArgs !== null) throw new Error('Cannot use when() after expects()');
