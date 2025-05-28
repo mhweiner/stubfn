@@ -165,8 +165,8 @@ const getUserStub = stub()
       phone: undefined // missing phone
     });
 
-  // Mock the domain code (System Under Test) to use our stub
-  const sut: typeof m = mock('./hasCompletedProfile', {
+  // Require the module and mock out the dependencies
+  const mod: typeof m = mock('./hasCompletedProfile', {
     './services/getUser': {getUser: getUserStub}
   });
 
