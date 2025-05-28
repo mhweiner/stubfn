@@ -7,6 +7,16 @@
 
 A minimal, zero-dependency stub utility for JavaScript testing. With a simple yet powerful API and predictable behavior, it's the perfect replacement for Sinon in modern test setups. Its functional, declarative style makes test code more readable and maintainable.
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [API](#api)
+- [Examples](#examples)
+- [A note about test complexity](#a-note-about-test-complexity)
+- [Support, feedback, and contributions](#support-feedback-and-contributions)
+- [Related libraries](#related-libraries)
+
 ## Quick Start
 
 ```typescript
@@ -210,7 +220,3 @@ Want to sponsor this project? [Reach out](mailto:mhweiner234@gmail.com?subject=I
 
 - [cjs-mock](https://github.com/mhweiner/cjs-mock): NodeJS module mocking for CJS (CommonJS) modules for unit testing purposes. Similar to [proxyquire](https://www.npmjs.com/package/proxyquire), but simpler and safer.
 - [hoare](https://github.com/mhweiner/hoare): An easy-to-use, fast, and defensive JS/TS test runner designed to help you to write simple, readable, and maintainable tests.
-
-## License
-
-[MIT](LICENSE)
